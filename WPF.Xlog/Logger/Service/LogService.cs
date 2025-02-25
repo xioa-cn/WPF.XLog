@@ -267,6 +267,6 @@ public class LogService : ILogService
         var source = $"{callerType?.Name}.{callerMethod?.Name} " +
                      $"({Path.GetFileName(callerFrame?.GetFileName())}:{callerFrame?.GetFileLineNumber()})";
         var message = $"User Action: {action} - {details}";
-        Log(LogLevel.Info, message, null, source);
+        Log(LogLevel.UserAction, message, null, source);
     }
 }
