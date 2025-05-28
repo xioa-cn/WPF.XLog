@@ -11,16 +11,14 @@ namespace WPF.Xlog.Logger.Service;
 /// 日志服务实现类，提供按级别分类的日志记录功能
 /// 日志按照 Logs/日期/级别/序号.log 的方式组织
 /// </summary>
-public class LogService : ILogService
-{
+public class LogService : ILogService {
     /// <summary>
     /// 单例实例
     /// </summary>
     public static LogService? Instance { get; private set; }
 
     public static void CreateLoggerInstance(string logDirectory = "XLogs", int maxFileSizeInMB = 100,
-        int maxLogFiles = 5)
-    {
+        int maxLogFiles = 5) {
         Instance = new LogService(logDirectory, maxFileSizeInMB, maxLogFiles);
     }
 
@@ -50,8 +48,7 @@ public class LogService : ILogService
     /// <param name="logDirectory">日志根目录</param>
     /// <param name="maxFileSizeInMB">单个文件最大大小（MB）</param>
     /// <param name="maxLogFiles">每个级别最多保留的文件数</param>
-    private LogService(string logDirectory = "XLogs", int maxFileSizeInMB = 100, int maxLogFiles = 5)
-    {
+    private LogService(string logDirectory = "XLogs", int maxFileSizeInMB = 100, int maxLogFiles = 5) {
         _baseLogDirectory = logDirectory;
         _maxFileSizeInMB = maxFileSizeInMB;
         _maxLogFiles = maxLogFiles;
@@ -59,6 +56,7 @@ public class LogService : ILogService
         Directory.CreateDirectory(_baseLogDirectory);
     }
 
+    private Action<LogEntry>? LogAction;
 
     /// <summary>
     /// 获取日志文件路径
@@ -70,8 +68,7 @@ public class LogService : ILogService
     /// 2. 检查文件大小，必要时创建新文件
     /// 3. 维护文件数量，超出限制时删除最旧的文件
     /// </remarks>
-    private string GetLogFilePath(LogLevel level)
-    {
+    private string GetLogFilePath(LogLevel level) {
         string currentDate = DateTime.Now.ToString("yyyy-MM-dd");
         string levelDirectory = Path.Combine(_baseLogDirectory, currentDate, level.ToString());
 
@@ -123,8 +120,7 @@ public class LogService : ILogService
     /// 使用锁确保线程安全
     /// 写入失败时尝试写入Windows事件日志
     /// </remarks>
-    private void WriteLogEntry(LogEntry entry)
-    {
+    private void WriteLogEntry(LogEntry entry) {
         var logMessage = FormatLogEntry(entry);
 
         lock (_lockObj)
@@ -133,6 +129,7 @@ public class LogService : ILogService
             {
                 string logFilePath = GetLogFilePath(entry.Level);
                 File.AppendAllText(logFilePath, logMessage + Environment.NewLine);
+                LogAction?.Invoke(entry);
             }
             catch (Exception ex)
             {
@@ -154,8 +151,7 @@ public class LogService : ILogService
     /// </summary>
     /// <param name="entry">日志条目</param>
     /// <returns>格式化后的日志文本</returns>
-    private string FormatLogEntry(LogEntry entry)
-    {
+    private string FormatLogEntry(LogEntry entry) {
         var sb = new StringBuilder();
         sb.AppendLine($"[{entry.Timestamp:yyyy-MM-dd HH:mm:ss.fff}] [{entry.Level}] {entry.Message}");
 
@@ -176,8 +172,7 @@ public class LogService : ILogService
         return sb.ToString();
     }
 
-    public void Log(LogLevel level, string message, Exception? exception = null, string source = "")
-    {
+    public void Log(LogLevel level, string message, Exception? exception = null, string source = "") {
         if (string.IsNullOrWhiteSpace(source))
         {
             var stackTrace = new System.Diagnostics.StackTrace(true);
@@ -188,8 +183,7 @@ public class LogService : ILogService
                      $"({Path.GetFileName(callerFrame?.GetFileName())}:{callerFrame?.GetFileLineNumber()})";
         }
 
-        var logEntry = new LogEntry
-        {
+        var logEntry = new LogEntry {
             Timestamp = DateTime.Now,
             Level = level,
             Message = message,
@@ -203,10 +197,9 @@ public class LogService : ILogService
         WriteLogEntry(logEntry);
     }
 
-    public void LogDebug(string message)
-    {
+    public void LogDebug(string message) {
         var stackTrace = new System.Diagnostics.StackTrace(true);
-        var callerFrame = stackTrace.GetFrame(1); 
+        var callerFrame = stackTrace.GetFrame(1);
         var callerMethod = callerFrame?.GetMethod();
         var callerType = callerMethod?.DeclaringType;
         var source = $"{callerType?.Name}.{callerMethod?.Name} " +
@@ -214,10 +207,9 @@ public class LogService : ILogService
         Log(LogLevel.Debug, message, null, source);
     }
 
-    public void LogInfo(string message)
-    {
+    public void LogInfo(string message) {
         var stackTrace = new System.Diagnostics.StackTrace(true);
-        var callerFrame = stackTrace.GetFrame(1); 
+        var callerFrame = stackTrace.GetFrame(1);
         var callerMethod = callerFrame?.GetMethod();
         var callerType = callerMethod?.DeclaringType;
         var source = $"{callerType?.Name}.{callerMethod?.Name} " +
@@ -225,10 +217,9 @@ public class LogService : ILogService
         Log(LogLevel.Info, message, null, source);
     }
 
-    public void LogWarning(string message)
-    {
+    public void LogWarning(string message) {
         var stackTrace = new System.Diagnostics.StackTrace(true);
-        var callerFrame = stackTrace.GetFrame(1); 
+        var callerFrame = stackTrace.GetFrame(1);
         var callerMethod = callerFrame?.GetMethod();
         var callerType = callerMethod?.DeclaringType;
         var source = $"{callerType?.Name}.{callerMethod?.Name} " +
@@ -236,8 +227,7 @@ public class LogService : ILogService
         Log(LogLevel.Warning, message, null, source);
     }
 
-    public void LogError(string message, Exception ex = null)
-    {
+    public void LogError(string message, Exception ex = null) {
         var stackTrace = new System.Diagnostics.StackTrace(true);
         var callerFrame = stackTrace.GetFrame(1); // 跳过当前方法
         var callerMethod = callerFrame?.GetMethod();
@@ -247,10 +237,9 @@ public class LogService : ILogService
         Log(LogLevel.Error, message, ex, source);
     }
 
-    public void LogFatal(string message, Exception ex = null)
-    {
+    public void LogFatal(string message, Exception ex = null) {
         var stackTrace = new System.Diagnostics.StackTrace(true);
-        var callerFrame = stackTrace.GetFrame(1); 
+        var callerFrame = stackTrace.GetFrame(1);
         var callerMethod = callerFrame?.GetMethod();
         var callerType = callerMethod?.DeclaringType;
         var source = $"{callerType?.Name}.{callerMethod?.Name} " +
@@ -258,10 +247,9 @@ public class LogService : ILogService
         Log(LogLevel.Fatal, message, ex, source);
     }
 
-    public void LogUserAction(string userName, string action, string details)
-    {
+    public void LogUserAction(string userName, string action, string details) {
         var stackTrace = new System.Diagnostics.StackTrace(true);
-        var callerFrame = stackTrace.GetFrame(1); 
+        var callerFrame = stackTrace.GetFrame(1);
         var callerMethod = callerFrame?.GetMethod();
         var callerType = callerMethod?.DeclaringType;
         var source = $"{callerType?.Name}.{callerMethod?.Name} " +
