@@ -58,6 +58,11 @@ public class LogService : ILogService {
 
     private Action<LogEntry>? LogAction;
 
+    public void AddLogAction(Action<LogEntry> action)
+    {
+        LogAction += action;
+    }
+
     /// <summary>
     /// 获取日志文件路径
     /// </summary>
